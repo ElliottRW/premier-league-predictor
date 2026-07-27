@@ -124,9 +124,10 @@ npm run gameweeks
 ```
 
 The included [refresh-fixtures](../.github/workflows/refresh-fixtures.yml) workflow
-runs this **automatically every week** and commits any changes, so the schedule
-stays current without you doing anything. (Live scores are separate — the app
-reads those from ESPN in real time, so results are always up to the minute.)
+runs this **automatically every day** and commits any changes, so the schedule
+stays current and each finished round's results get cached (for fast loading)
+without you doing anything. (Live scores are separate — the app reads those from
+ESPN in real time, so in-progress results are always up to the minute.)
 
 ---
 
