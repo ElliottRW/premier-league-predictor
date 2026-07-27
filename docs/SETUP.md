@@ -103,9 +103,11 @@ browser network restrictions.
   in the dropdown next refresh.
 - **Fix a pick:** edit the cell directly in the sheet, or the player can re-pick
   any time before the deadline.
-- **Deadlines:** picks lock at the first kickoff of each round. Before then,
-  everyone's pick is hidden (shown as “Picked ✓” / a padlock); after, they're
-  revealed with results.
+- **Deadlines:** picks lock at **12:00 UK on the day of the round's first match —
+  or the Friday before, if that match is on a weekend** (office pool: no weekend
+  picking). Before the deadline every pick is hidden (shown as “Picked ✓” / a
+  padlock); **the moment the deadline passes, everyone's team is revealed**, with
+  results filling in as games are played.
 
 ## Keeping fixtures up to date
 

@@ -26,6 +26,40 @@ const UA = 'Mozilla/5.0 (compatible; LastManStanding/1.0; +github-pages)'
 const dayKey = (iso) => iso.slice(0, 10)
 const seasonLabel = (year) => `${year}-${String((year + 1) % 100).padStart(2, '0')}`
 
+// How many ms a time zone is ahead of UTC at a given instant.
+function tzOffsetMs(date, timeZone) {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  })
+  const p = dtf.formatToParts(date).reduce((a, x) => ((a[x.type] = x.value), a), {})
+  const asUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour === '24' ? 0 : p.hour, p.minute, p.second)
+  return asUTC - date.getTime()
+}
+
+// 12:00 UK time on a given calendar date (handles BST/GMT), as a UTC epoch ms.
+function noonLondonMs(y, m, d) {
+  const guess = Date.UTC(y, m - 1, d, 12, 0, 0)
+  return guess - tzOffsetMs(new Date(guess), 'Europe/London') // 12:00 BST -> 11:00Z
+}
+
+// The picks deadline for a round. It's an office pool, so nobody can pick over
+// the weekend: if the round's first match is on a Sat/Sun, the deadline is the
+// FRIDAY of that week at 12:00 UK; otherwise it's 12:00 UK on the first match's
+// day. Never later than the first kickoff (safety net). Handles BST/GMT.
+function deadlineFor(firstKickoffISO) {
+  const [y, m, d] = dayKey(firstKickoffISO).split('-').map(Number)
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay() // 0=Sun .. 6=Sat
+  let deadlineDayMs = Date.UTC(y, m - 1, d)
+  if (dow === 6) deadlineDayMs -= 1 * 86400000 // Saturday -> Friday
+  else if (dow === 0) deadlineDayMs -= 2 * 86400000 // Sunday -> Friday
+  // Friday and midweek (Mon–Thu) rounds keep their own day.
+  const dd = new Date(deadlineDayMs)
+  const noon = noonLondonMs(dd.getUTCFullYear(), dd.getUTCMonth() + 1, dd.getUTCDate())
+  return new Date(Math.min(noon, new Date(firstKickoffISO).getTime())).toISOString()
+}
+
 /* ----------------------------- FPL (primary) ----------------------------- */
 
 async function buildFromFPL() {
@@ -52,7 +86,7 @@ async function buildFromFPL() {
         round: event,
         start: dayKey(kickoffs[0]),
         end: dayKey(kickoffs[kickoffs.length - 1]),
-        deadline: kickoffs[0], // picks lock at first kickoff of the round
+        deadline: deadlineFor(kickoffs[0]), // noon UK (Fri if weekend opener)
         fixtureCount: kickoffs.length,
       }
     })
@@ -111,7 +145,7 @@ async function buildFromESPN() {
       round: i + 1,
       start: dayKey(dates[0]),
       end: dayKey(dates[dates.length - 1]),
-      deadline: dates[0],
+      deadline: deadlineFor(dates[0]),
       fixtureCount: dates.length,
     })),
   }
