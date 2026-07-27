@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/config.ts","./src/main.tsx","./src/vite-env.d.ts","./src/components/fixturecard.tsx","./src/components/ui.tsx","./src/lib/espn.ts","./src/lib/game.ts","./src/lib/gameweeks.ts","./src/lib/sheet.ts","./src/lib/teams.ts","./src/lib/usegamedata.ts","./src/pages/dashboard.tsx","./src/pages/makepick.tsx","./src/pages/standings.tsx"],"version":"5.9.3"}

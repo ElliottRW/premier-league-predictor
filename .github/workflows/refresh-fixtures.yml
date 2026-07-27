@@ -1,0 +1,35 @@
+name: Refresh fixtures
+
+# Optional: regenerates public/data/gameweeks.json from ESPN once a week and
+# commits it if the schedule changed (e.g. after fixture reschedules). Results
+# themselves are fetched live in the browser, so this only keeps the round
+# date-windows accurate. A push here re-triggers the Pages deploy.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/build-gameweeks.mjs
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet public/data/gameweeks.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/data/gameweeks.json
+            git commit -m "chore: refresh gameweeks from ESPN"
+            git push
+          else
+            echo "No changes."
+          fi
