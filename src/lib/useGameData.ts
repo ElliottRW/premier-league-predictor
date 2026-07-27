@@ -14,6 +14,7 @@ import type { Player } from './sheet'
 import { fetchPlayers } from './sheet'
 import type { Standing } from './game'
 import { computeStanding, sortStandings } from './game'
+import { loadResults } from './results'
 import { LIVES } from '../config'
 
 const fixtureCache = new Map<string, Fixture[]>()
@@ -61,10 +62,11 @@ export function useGameData(): GameData {
     setState((s) => ({ ...s, loading: true, error: null }))
     try {
       const now = new Date()
-      const [teams, schedule, playersRes] = await Promise.all([
+      const [teams, schedule, playersRes, cachedResults] = await Promise.all([
         loadTeams(),
         loadSchedule(),
         fetchPlayers(),
+        loadResults(),
       ])
 
       const current = currentRound(schedule, now) ?? null
@@ -75,13 +77,18 @@ export function useGameData(): GameData {
       for (const r of played) needed.set(r.round, r)
       if (current) needed.set(current.round, current)
 
-      const roundFixtures = new Map<number, Fixture[]>()
+      // Seed from the static results cache (finished rounds) — fast, no network.
+      // Then fetch from ESPN only for rounds not cached, plus always the current
+      // round (which may be in progress and needs live scores).
+      const roundFixtures = new Map<number, Fixture[]>(cachedResults)
       await Promise.all(
         [...needed.values()].map(async (r) => {
+          const isCurrent = current?.round === r.round
+          if (!isCurrent && roundFixtures.has(r.round)) return // cached, skip network
           try {
             roundFixtures.set(r.round, await fixturesForRound(r))
           } catch {
-            roundFixtures.set(r.round, [])
+            if (!roundFixtures.has(r.round)) roundFixtures.set(r.round, [])
           }
         }),
       )

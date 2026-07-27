@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url'
 
 const OUT = fileURLToPath(new URL('../public/data/gameweeks.json', import.meta.url))
 const TEAMS_OUT = fileURLToPath(new URL('../public/data/teams.json', import.meta.url))
+const RESULTS_OUT = fileURLToPath(new URL('../public/data/results.json', import.meta.url))
 const UA = 'Mozilla/5.0 (compatible; LastManStanding/1.0; +github-pages)'
 
 const dayKey = (iso) => iso.slice(0, 10)
@@ -175,6 +176,72 @@ async function buildTeams() {
   return teams
 }
 
+/* ------------------------------ Results ---------------------------------- */
+
+// Cache the fixtures + final scores of FINISHED rounds into results.json, so the
+// app loads old results from one static file instead of hitting ESPN once per
+// past round on every page load. Shape matches the app's Fixture type (espn.ts),
+// so the runtime can use it as-is. Live/in-progress rounds are still read from
+// ESPN in the browser.
+const yyyymmddStr = (d) => d.replaceAll('-', '')
+
+function mapEvent(e) {
+  const comp = e.competitions?.[0]
+  if (!comp) return null
+  const cs = comp.competitors ?? []
+  const home = cs.find((c) => c.homeAway === 'home')
+  const away = cs.find((c) => c.homeAway === 'away')
+  if (!home || !away) return null
+  const st = e.status?.type ?? {}
+  const side = (c) => {
+    const t = c.team ?? {}
+    const score = c.score === undefined || c.score === '' ? null : Number(c.score)
+    return {
+      teamId: String(t.id ?? ''),
+      name: t.shortDisplayName ?? t.displayName ?? '',
+      fullName: t.displayName ?? t.name ?? '',
+      abbr: t.abbreviation ?? '',
+      crest: t.logo || `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png`,
+      score: Number.isNaN(score) ? null : score,
+    }
+  }
+  return {
+    id: String(e.id),
+    date: e.date,
+    state: st.state ?? 'pre',
+    completed: Boolean(st.completed),
+    statusText: st.shortDetail ?? st.detail ?? st.description ?? '',
+    home: side(home),
+    away: side(away),
+  }
+}
+
+async function fetchRoundFixtures(round) {
+  const url = `${ESPN}/scoreboard?dates=${yyyymmddStr(round.start)}-${yyyymmddStr(round.end)}&limit=200`
+  const data = await (await fetch(url)).json()
+  return (data.events ?? [])
+    .map(mapEvent)
+    .filter(Boolean)
+    .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+async function buildResults(schedule) {
+  const now = Date.now()
+  const rounds = {}
+  for (const r of schedule.rounds) {
+    // Only rounds whose window has fully passed are candidates for the cache.
+    if (new Date(`${r.end}T23:59:59Z`).getTime() > now) continue
+    try {
+      const fx = await fetchRoundFixtures(r)
+      // Store only fully-finalised rounds; anything unfinished stays live.
+      if (fx.length && fx.every((f) => f.completed)) rounds[r.round] = fx
+    } catch {
+      /* skip this round; the app will fall back to live ESPN */
+    }
+  }
+  return { generatedAt: new Date().toISOString(), rounds }
+}
+
 /* -------------------------------- main ----------------------------------- */
 
 async function main() {
@@ -199,6 +266,11 @@ async function main() {
   )
   console.log(`✓ ${teams.length} teams → ${TEAMS_OUT}`)
   if (teams.length !== 20) console.warn(`  ! expected 20 teams, got ${teams.length}`)
+
+  // Cached results of finished rounds (speeds up load; empty pre-season).
+  const results = await buildResults(schedule)
+  await writeFile(RESULTS_OUT, JSON.stringify(results) + '\n')
+  console.log(`✓ ${Object.keys(results.rounds).length} finished rounds cached → ${RESULTS_OUT}`)
 
   const dgw = schedule.rounds.filter((r) => r.fixtureCount > 10)
   console.log(

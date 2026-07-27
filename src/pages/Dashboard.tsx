@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import type { GameData } from '../lib/useGameData'
 import { gwKey } from '../lib/sheet'
 import { findTeam } from '../lib/teams'
-import { fixtureForTeam, outcomeFor } from '../lib/espn'
+import type { Fixture } from '../lib/espn'
+import { fetchFixtures, fixtureForTeam, outcomeFor } from '../lib/espn'
 import { Crest, Hearts, Countdown, StatCard, Pill } from '../components/ui'
 import { FixtureCard } from '../components/FixtureCard'
 
@@ -90,21 +92,95 @@ export function Dashboard({ data }: { data: GameData }) {
       )}
         </div>
 
-        {/* Fixtures — right column on desktop */}
-        <section>
-          <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-white/50">
-            {current ? `GW${current.round} fixtures` : 'Fixtures'}
-          </h2>
-          <div className="space-y-2">
-            {currentFixtures.length === 0 && (
-              <p className="card p-4 text-sm text-white/50">No fixtures found for this round.</p>
-            )}
-            {currentFixtures.map((fx) => (
-              <FixtureCard key={fx.id} fx={fx} />
-            ))}
-          </div>
-        </section>
+        {/* Fixtures — right column on desktop, with gameweek navigation */}
+        <FixturesPanel data={data} />
       </div>
     </div>
+  )
+}
+
+/** Fixtures for a round, with ‹ › navigation to browse any gameweek's results. */
+function FixturesPanel({ data }: { data: GameData }) {
+  const { schedule, current, roundFixtures } = data
+  const lastRound = schedule?.rounds.length ?? 1
+  const [viewRound, setViewRound] = useState(current?.round ?? 1)
+  const [onDemand, setOnDemand] = useState<Map<number, Fixture[]>>(new Map())
+  const [loading, setLoading] = useState(false)
+
+  // Cached (finished) and current rounds are already in roundFixtures; other
+  // rounds (e.g. future) are fetched from ESPN once, on demand.
+  const fixtures = roundFixtures.get(viewRound) ?? onDemand.get(viewRound) ?? null
+  const meta = schedule?.rounds.find((r) => r.round === viewRound)
+
+  useEffect(() => {
+    if (fixtures || !meta) return
+    let cancelled = false
+    setLoading(true)
+    fetchFixtures(meta.start, meta.end)
+      .then((list) => !cancelled && setOnDemand((m) => new Map(m).set(viewRound, list)))
+      .catch(() => {})
+      .finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [viewRound, fixtures, meta])
+
+  return (
+    <section>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-white/50">
+          GW{viewRound} fixtures
+          {current?.round === viewRound && <span className="ml-2 text-[var(--color-brand)]">· now</span>}
+        </h2>
+        <div className="flex items-center gap-1">
+          <NavBtn disabled={viewRound <= 1} onClick={() => setViewRound((r) => Math.max(1, r - 1))}>
+            ‹
+          </NavBtn>
+          {current && current.round !== viewRound && (
+            <button
+              onClick={() => setViewRound(current.round)}
+              className="rounded-md px-2 py-1 text-xs font-medium text-white/50 hover:text-white/80"
+            >
+              Today
+            </button>
+          )}
+          <NavBtn
+            disabled={viewRound >= lastRound}
+            onClick={() => setViewRound((r) => Math.min(lastRound, r + 1))}
+          >
+            ›
+          </NavBtn>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {loading && !fixtures ? (
+          <p className="card p-4 text-sm text-white/50">Loading GW{viewRound}…</p>
+        ) : !fixtures || fixtures.length === 0 ? (
+          <p className="card p-4 text-sm text-white/50">No fixtures found for this round.</p>
+        ) : (
+          fixtures.map((fx) => <FixtureCard key={fx.id} fx={fx} />)
+        )}
+      </div>
+    </section>
+  )
+}
+
+function NavBtn({
+  children,
+  disabled,
+  onClick,
+}: {
+  children: React.ReactNode
+  disabled?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className="grid h-7 w-7 place-items-center rounded-md border border-[var(--color-border)] bg-white/5 text-white/70 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+    >
+      {children}
+    </button>
   )
 }
