@@ -20,6 +20,7 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const OUT = fileURLToPath(new URL('../public/data/gameweeks.json', import.meta.url))
+const TEAMS_OUT = fileURLToPath(new URL('../public/data/teams.json', import.meta.url))
 const UA = 'Mozilla/5.0 (compatible; LastManStanding/1.0; +github-pages)'
 
 const dayKey = (iso) => iso.slice(0, 10)
@@ -116,6 +117,30 @@ async function buildFromESPN() {
   }
 }
 
+/* ------------------------------- Teams ----------------------------------- */
+
+// ESPN's /teams endpoint has no CORS headers, so the browser can't call it.
+// We fetch it here (Node, no CORS) and write teams.json for the app to load
+// same-origin. Crest images are <img> tags, which aren't subject to CORS.
+async function buildTeams() {
+  const res = await fetch(`${ESPN}/teams`)
+  if (!res.ok) throw new Error(`ESPN /teams ${res.status}`)
+  const data = await res.json()
+  const raw = data.sports?.[0]?.leagues?.[0]?.teams ?? []
+  const teams = raw
+    .map((x) => x.team)
+    .filter(Boolean)
+    .map((t) => ({
+      id: String(t.id),
+      abbr: t.abbreviation ?? '',
+      name: t.shortDisplayName ?? t.displayName ?? '',
+      fullName: t.displayName ?? t.name ?? '',
+      crest: (t.logos ?? [])[0]?.href || `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png`,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+  return teams
+}
+
 /* -------------------------------- main ----------------------------------- */
 
 async function main() {
@@ -131,6 +156,15 @@ async function main() {
 
   await mkdir(dirname(OUT), { recursive: true })
   await writeFile(OUT, JSON.stringify(schedule, null, 2) + '\n')
+
+  // Teams (for the pick grid + mapping picks to fixtures).
+  const teams = await buildTeams()
+  await writeFile(
+    TEAMS_OUT,
+    JSON.stringify({ generatedAt: new Date().toISOString(), count: teams.length, teams }, null, 2) + '\n',
+  )
+  console.log(`✓ ${teams.length} teams → ${TEAMS_OUT}`)
+  if (teams.length !== 20) console.warn(`  ! expected 20 teams, got ${teams.length}`)
 
   const dgw = schedule.rounds.filter((r) => r.fixtureCount > 10)
   console.log(

@@ -93,23 +93,17 @@ export async function fetchFixtures(start: string, end: string): Promise<Fixture
     .sort((a, b) => a.date.localeCompare(b.date))
 }
 
-/** Load the season's 20 teams from ESPN. */
+/**
+ * Load the season's 20 teams from our own teams.json (generated at build time by
+ * scripts/build-gameweeks.mjs). ESPN's /teams endpoint has no CORS headers so it
+ * can't be called from the browser — but its fixtures endpoint (used elsewhere)
+ * can. Team crests are plain <img> URLs, unaffected by CORS.
+ */
 export async function loadTeams(): Promise<Team[]> {
-  const res = await fetch(`${BASE}/teams`)
-  if (!res.ok) throw new Error(`ESPN teams ${res.status}`)
+  const res = await fetch(`${import.meta.env.BASE_URL}data/teams.json`)
+  if (!res.ok) throw new Error(`teams.json ${res.status}`)
   const data = await res.json()
-  const raw: any[] = data.sports?.[0]?.leagues?.[0]?.teams ?? []
-  return raw
-    .map((x) => x.team)
-    .filter(Boolean)
-    .map((t: any) => ({
-      id: String(t.id),
-      abbr: t.abbreviation ?? '',
-      name: t.shortDisplayName ?? t.displayName ?? '',
-      fullName: t.displayName ?? t.name ?? '',
-      crest: crestFor(String(t.id), (t.logos ?? [])[0]?.href),
-    }))
-    .sort((a: Team, b: Team) => a.name.localeCompare(b.name))
+  return (data.teams ?? []) as Team[]
 }
 
 /** Grade one team's result within a fixture. */
