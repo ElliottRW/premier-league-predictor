@@ -4,14 +4,16 @@ import { Spinner } from './components/ui'
 import { Dashboard } from './pages/Dashboard'
 import { MakePick } from './pages/MakePick'
 import { Standings } from './pages/Standings'
+import { Rules } from './pages/Rules'
 import { MOCK_MODE } from './config'
 
-type Tab = 'home' | 'pick' | 'standings'
+type Tab = 'home' | 'pick' | 'standings' | 'rules'
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'home', label: 'Home', icon: '🏠' },
-  { id: 'pick', label: 'Make Pick', icon: '✅' },
+  { id: 'pick', label: 'Pick', icon: '✅' },
   { id: 'standings', label: 'Standings', icon: '🏆' },
+  { id: 'rules', label: 'Rules', icon: '📖' },
 ]
 
 export default function App() {
@@ -46,7 +48,7 @@ export default function App() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 lg:flex-none lg:px-8 py-2.5 text-sm font-semibold rounded-t-lg transition relative ${
+              className={`flex-1 lg:flex-none lg:px-8 py-2.5 text-sm font-semibold rounded-t-lg transition relative whitespace-nowrap ${
                 tab === t.id ? 'text-white' : 'text-white/45 hover:text-white/70'
               }`}
             >
@@ -71,6 +73,7 @@ export default function App() {
             {tab === 'home' && <Dashboard data={data} />}
             {tab === 'pick' && <MakePick data={data} onDone={data.refresh} goHome={() => setTab('home')} />}
             {tab === 'standings' && <Standings data={data} />}
+            {tab === 'rules' && <Rules />}
           </div>
         )}
       </main>
