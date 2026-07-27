@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { GameData } from '../lib/useGameData'
-import { gwKey, submitPick } from '../lib/sheet'
+import { gwKey, submitPick, verifyPin } from '../lib/sheet'
 import { findTeam } from '../lib/teams'
 import type { Team } from '../lib/teams'
 import { fixtureForTeam } from '../lib/espn'
@@ -17,8 +17,10 @@ export function MakePick({
 }) {
   const { current, currentFixtures, players, teams, now } = data
   const [name, setName] = useState('')
-  const [pending, setPending] = useState<Team | null>(null)
   const [pin, setPin] = useState('')
+  const [verified, setVerified] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const [pending, setPending] = useState<Team | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<Team | null>(null)
@@ -40,6 +42,14 @@ export function MakePick({
     }
     return teams.filter((t) => !usedElsewhere.has(t.id))
   }, [player, current, teams])
+
+  function resetPlayer() {
+    setName('')
+    setPin('')
+    setVerified(false)
+    setPending(null)
+    setError(null)
+  }
 
   if (!current) return <p className="card p-4 text-white/60">The season hasn’t started yet.</p>
 
@@ -71,7 +81,7 @@ export function MakePick({
           <button
             onClick={() => {
               setDone(null)
-              setName('')
+              resetPlayer()
             }}
             className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/15"
           >
@@ -86,6 +96,20 @@ export function MakePick({
         </div>
       </div>
     )
+  }
+
+  async function handleVerify() {
+    setVerifying(true)
+    setError(null)
+    try {
+      const res = await verifyPin(name, pin)
+      if (res.ok) setVerified(true)
+      else setError(res.error || 'Could not verify')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error')
+    } finally {
+      setVerifying(false)
+    }
   }
 
   return (
@@ -106,10 +130,13 @@ export function MakePick({
           value={name}
           onChange={(e) => {
             setName(e.target.value)
+            setPin('')
+            setVerified(false)
             setPending(null)
             setError(null)
           }}
-          className="w-full rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] px-4 py-3 text-base outline-none focus:border-[var(--color-brand)]"
+          disabled={verified}
+          className="w-full rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] px-4 py-3 text-base outline-none focus:border-[var(--color-brand)] disabled:opacity-60"
         >
           <option value="">Select your name…</option>
           {[...players]
@@ -122,15 +149,60 @@ export function MakePick({
         </select>
       </div>
 
-      {/* Step 2: pick a team */}
-      {player && (
+      {/* Step 2: verify PIN (gate — reveals nothing until confirmed) */}
+      {player && !verified && (
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-white/70">
-            2 · Pick a team{' '}
-            <span className="font-normal text-white/40">
-              ({available.length} left{currentPickTeam ? ` · now: ${currentPickTeam.name}` : ''})
-            </span>
+            2 · Enter your 2-digit PIN
           </label>
+          <div className="flex gap-2">
+            <input
+              autoFocus
+              inputMode="numeric"
+              maxLength={2}
+              value={pin}
+              onChange={(e) => {
+                setPin(e.target.value.replace(/\D/g, '').slice(0, 2))
+                setError(null)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && pin.length === 2 && !verifying) handleVerify()
+              }}
+              placeholder="••"
+              className="w-28 text-center tracking-[0.5em] text-2xl rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border)] px-4 py-3 outline-none focus:border-[var(--color-brand)]"
+            />
+            <button
+              disabled={pin.length !== 2 || verifying}
+              onClick={handleVerify}
+              className="flex-1 rounded-xl bg-[var(--color-brand)] px-4 text-sm font-semibold hover:opacity-90 disabled:opacity-40"
+            >
+              {verifying ? 'Checking…' : 'Continue'}
+            </button>
+          </div>
+          {error && <p className="mt-2 text-sm text-rose-400">{error}</p>}
+          <p className="mt-2 text-xs text-white/40">
+            Your PIN keeps your pick private — nobody can view or change it without it.
+          </p>
+        </div>
+      )}
+
+      {/* Step 3: pick a team (only after PIN verified) */}
+      {player && verified && (
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="text-sm font-semibold text-white/70">
+              2 · Pick a team{' '}
+              <span className="font-normal text-white/40">
+                ({available.length} left{currentPickTeam ? ` · now: ${currentPickTeam.name}` : ''})
+              </span>
+            </label>
+            <button
+              onClick={resetPlayer}
+              className="text-xs font-medium text-white/45 hover:text-white/80"
+            >
+              Not you? Change
+            </button>
+          </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {available.map((t) => {
               const fx = fixtureForTeam(currentFixtures, t.id)
@@ -144,7 +216,6 @@ export function MakePick({
                   disabled={noGame}
                   onClick={() => {
                     setPending(t)
-                    setPin('')
                     setError(null)
                   }}
                   className={`card p-3 text-left transition ${
@@ -169,8 +240,8 @@ export function MakePick({
         </div>
       )}
 
-      {/* Confirm sheet */}
-      {pending && player && (
+      {/* Confirm sheet (identity already verified — just confirm the team) */}
+      {pending && player && verified && (
         <div className="fixed inset-0 z-30 flex items-end sm:items-center justify-center bg-black/60 p-4">
           <div className="card w-full max-w-sm p-5 fade-up">
             <div className="flex items-center gap-3">
@@ -183,18 +254,10 @@ export function MakePick({
               </div>
             </div>
 
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-white/70">
-              Enter your 2-digit PIN to confirm
-            </label>
-            <input
-              autoFocus
-              inputMode="numeric"
-              maxLength={2}
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 2))}
-              placeholder="••"
-              className="w-full text-center tracking-[0.5em] text-2xl rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border)] px-4 py-3 outline-none focus:border-[var(--color-brand)]"
-            />
+            <p className="mt-4 text-sm text-white/60">
+              Lock in <span className="font-semibold text-white/90">{pending.name}</span> for GW
+              {current.round}?
+            </p>
             {error && <p className="mt-2 text-sm text-rose-400">{error}</p>}
 
             <div className="mt-4 flex gap-2">
@@ -208,7 +271,7 @@ export function MakePick({
                 Cancel
               </button>
               <button
-                disabled={pin.length !== 2 || busy}
+                disabled={busy}
                 onClick={async () => {
                   setBusy(true)
                   setError(null)

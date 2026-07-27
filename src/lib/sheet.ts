@@ -54,6 +54,16 @@ async function realSubmitPick(name: string, pin: string, round: number, team: st
   return (await res.json()) as { ok: boolean; error?: string }
 }
 
+async function realVerify(name: string, pin: string) {
+  const res = await fetch(SHEET_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'verify', name, pin }),
+  })
+  if (!res.ok) throw new Error(`Verify ${res.status}`)
+  return (await res.json()) as { ok: boolean; error?: string }
+}
+
 /* ------------------------------------------------------------------ *
  * Mock backend (localStorage)
  * ------------------------------------------------------------------ */
@@ -118,6 +128,13 @@ async function mockSubmitPick(name: string, pin: string, round: number, team: st
   return { ok: true }
 }
 
+async function mockVerify(name: string, pin: string) {
+  const p = readMock().players.find((x) => x.name === name)
+  if (!p) return { ok: false, error: 'Player not found' }
+  if (p.pin !== pin) return { ok: false, error: 'Incorrect PIN' }
+  return { ok: true }
+}
+
 /* ------------------------------------------------------------------ *
  * Public API
  * ------------------------------------------------------------------ */
@@ -128,6 +145,11 @@ export function fetchPlayers(): Promise<PlayersResponse> {
 
 export function submitPick(name: string, pin: string, round: number, team: string) {
   return MOCK_MODE ? mockSubmitPick(name, pin, round, team) : realSubmitPick(name, pin, round, team)
+}
+
+/** Confirm name + PIN before revealing that player's picks. */
+export function verifyPin(name: string, pin: string) {
+  return MOCK_MODE ? mockVerify(name, pin) : realVerify(name, pin)
 }
 
 /** Wipe mock data (dev helper, exposed on window in App). */

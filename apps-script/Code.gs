@@ -30,10 +30,37 @@ function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
     if (body.action === 'pick') return json(submitPick(body));
+    if (body.action === 'verify') return json(verifyPlayer(body));
     return json({ ok: false, error: 'Unknown action' });
   } catch (err) {
     return json({ ok: false, error: String(err) });
   }
+}
+
+/* ----------------------------- Verify PIN -------------------------------- */
+
+// Confirms a name + PIN without writing anything. Used to gate the pick screen
+// so you must prove it's you before seeing your teams/current pick.
+function verifyPlayer(body) {
+  var name = String(body.name || '').trim();
+  var pin = String(body.pin || '').trim();
+  if (!name) return { ok: false, error: 'Missing name' };
+
+  var sheet = getSheet();
+  var values = sheet.getDataRange().getValues();
+  var col = columnMap(
+    values[0].map(function (h) {
+      return String(h).trim();
+    }),
+  );
+  for (var r = 1; r < values.length; r++) {
+    if (String(values[r][col.name] || '').trim().toLowerCase() === name.toLowerCase()) {
+      var actualPin = String(values[r][col.pin] || '').trim();
+      if (actualPin && actualPin !== pin) return { ok: false, error: 'Incorrect PIN' };
+      return { ok: true };
+    }
+  }
+  return { ok: false, error: 'Player not found' };
 }
 
 /* ------------------------------- Read ------------------------------------ */
