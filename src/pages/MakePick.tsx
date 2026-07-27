@@ -45,7 +45,7 @@ export function MakePick({
 
   if (locked) {
     return (
-      <div className="card p-6 text-center">
+      <div className="card mx-auto max-w-lg p-6 text-center">
         <div className="text-3xl mb-2">🔒</div>
         <p className="font-semibold">Picks are locked for GW{current.round}</p>
         <p className="text-white/50 text-sm mt-1">
@@ -57,7 +57,7 @@ export function MakePick({
 
   if (done) {
     return (
-      <div className="card p-6 text-center fade-up">
+      <div className="card mx-auto max-w-lg p-6 text-center fade-up">
         <div className="text-4xl mb-2">🎉</div>
         <p className="font-semibold text-lg">Pick locked in!</p>
         <div className="my-3 inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2">
@@ -89,7 +89,7 @@ export function MakePick({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto w-full max-w-4xl space-y-5">
       {/* Deadline banner */}
       <div className="card px-4 py-3 flex items-center justify-between">
         <div>
@@ -131,7 +131,7 @@ export function MakePick({
               ({available.length} left{currentPickTeam ? ` · now: ${currentPickTeam.name}` : ''})
             </span>
           </label>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {available.map((t) => {
               const fx = fixtureForTeam(currentFixtures, t.id)
               const isHome = fx?.home.teamId === t.id

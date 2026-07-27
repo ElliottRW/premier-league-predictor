@@ -19,7 +19,7 @@ export default function App() {
   const data = useGameData()
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-2xl flex-col">
+    <div className="mx-auto flex min-h-[100dvh] w-full max-w-2xl lg:max-w-6xl flex-col">
       {/* Header */}
       <header className="sticky top-0 z-20 backdrop-blur-lg bg-[var(--color-bg)]/70 border-b border-[var(--color-border)]">
         <div className="px-4 pt-4 pb-3 flex items-center justify-between">
@@ -40,13 +40,13 @@ export default function App() {
             ↻
           </button>
         </div>
-        {/* Tabs */}
+        {/* Tabs — equal thirds on mobile, compact & left-aligned on desktop */}
         <nav className="px-2 flex gap-1">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 py-2.5 text-sm font-semibold rounded-t-lg transition relative ${
+              className={`flex-1 lg:flex-none lg:px-8 py-2.5 text-sm font-semibold rounded-t-lg transition relative ${
                 tab === t.id ? 'text-white' : 'text-white/45 hover:text-white/70'
               }`}
             >

@@ -13,7 +13,7 @@ export function Dashboard({ data }: { data: GameData }) {
 
   return (
     <div className="space-y-5">
-      {/* Stat row */}
+      {/* Stat row — full width across the top */}
       <div className="flex gap-3">
         <StatCard label="Round" value={current ? `GW${current.round}` : '—'} accent />
         <StatCard
@@ -23,6 +23,9 @@ export function Dashboard({ data }: { data: GameData }) {
         <StatCard label="Still in" value={`${survivors.length}`} />
       </div>
 
+      {/* Two columns on desktop: standings left, fixtures right. Stacks on mobile. */}
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+        <div className="space-y-5">
       {/* Still standing */}
       <section>
         <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-white/50">
@@ -85,21 +88,23 @@ export function Dashboard({ data }: { data: GameData }) {
           </div>
         </section>
       )}
-
-      {/* Fixtures */}
-      <section>
-        <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-white/50">
-          {current ? `GW${current.round} fixtures` : 'Fixtures'}
-        </h2>
-        <div className="space-y-2">
-          {currentFixtures.length === 0 && (
-            <p className="card p-4 text-sm text-white/50">No fixtures found for this round.</p>
-          )}
-          {currentFixtures.map((fx) => (
-            <FixtureCard key={fx.id} fx={fx} />
-          ))}
         </div>
-      </section>
+
+        {/* Fixtures — right column on desktop */}
+        <section>
+          <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-white/50">
+            {current ? `GW${current.round} fixtures` : 'Fixtures'}
+          </h2>
+          <div className="space-y-2">
+            {currentFixtures.length === 0 && (
+              <p className="card p-4 text-sm text-white/50">No fixtures found for this round.</p>
+            )}
+            {currentFixtures.map((fx) => (
+              <FixtureCard key={fx.id} fx={fx} />
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   )
 }
