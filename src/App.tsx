@@ -25,10 +25,10 @@ export default function App() {
         <div className="px-4 pt-4 pb-3 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-extrabold tracking-tight flex items-center gap-2">
-              <span>⚽</span> Last Man Standing
+              <span>⚽</span> Premier League Predictor
             </h1>
             <p className="text-xs text-white/45">
-              Premier League {data.schedule ? `· ${data.schedule.season}` : ''}
+              Last Man Standing {data.schedule ? `· ${data.schedule.season}` : ''}
               {MOCK_MODE && <span className="ml-2 text-amber-400">· demo data</span>}
             </p>
           </div>

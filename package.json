@@ -1,9 +1,9 @@
 {
-  "name": "last-man-standing",
+  "name": "premier-league-predictor",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Last Man Standing — Premier League predictor pool",
+  "description": "Premier League Predictor — Last Man Standing pool",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

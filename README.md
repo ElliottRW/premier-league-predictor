@@ -1,4 +1,4 @@
-# ⚽ Last Man Standing — Premier League Predictor
+# ⚽ Premier League Predictor — Last Man Standing
 
 A modern, mobile-first web app for running a **Last Man Standing** (Survivor)
 Premier League pool. Replaces the spreadsheet: players pick a team each gameweek,
