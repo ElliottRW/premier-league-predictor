@@ -109,6 +109,25 @@ browser network restrictions.
   padlock); **the moment the deadline passes, everyone's team is revealed**, with
   results filling in as games are played.
 
+## Admin screen (add/remove players, see picks & timestamps)
+
+There's a password-protected Admin screen — the **⚙️ icon** in the app header.
+
+To enable it:
+
+1. In `apps-script/Code.gs`, set `ADMIN_PASSWORD` to a private password.
+2. **Re-deploy** the web app (Manage deployments ▸ edit ▸ New version — keeps the
+   same URL). Reminder: editing `Code.gs` only takes effect once you re-deploy.
+
+Then click ⚙️, enter the password, and you can:
+
+- **Add a player** (name + 2-digit PIN) or **remove one** — writes straight to the
+  `Picks` tab.
+- See **every player's picks**, their PINs, and **when each pick was submitted**.
+
+Every pick is timestamped to an auto-created **`Log`** tab in your sheet, so you
+also have a full audit trail (including changes) right in the spreadsheet.
+
 ## Keeping fixtures up to date
 
 The round schedule lives in [`public/data/gameweeks.json`](../public/data/gameweeks.json).

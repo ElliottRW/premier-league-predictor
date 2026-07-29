@@ -152,6 +152,91 @@ export function verifyPin(name: string, pin: string) {
   return MOCK_MODE ? mockVerify(name, pin) : realVerify(name, pin)
 }
 
+/* ------------------------------------------------------------------ *
+ * Admin
+ * ------------------------------------------------------------------ */
+
+export interface AdminPlayer {
+  name: string
+  pin: string
+  paid: boolean
+  picks: Record<string, string>
+  /** { "GW1": ISO string } — when each pick was last submitted (from the Log). */
+  times: Record<string, string>
+}
+
+export interface AdminDataResponse {
+  ok: boolean
+  error?: string
+  players: AdminPlayer[]
+  lives: number
+}
+
+type AdminResult = { ok: boolean; error?: string }
+
+async function realAdmin(payload: Record<string, unknown>): Promise<any> {
+  const res = await fetch(SHEET_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'admin', ...payload }),
+  })
+  if (!res.ok) throw new Error(`Admin ${res.status}`)
+  return res.json()
+}
+
+// Mock admin password for local/demo use.
+const MOCK_ADMIN_PASS = 'admin'
+
+async function mockAdmin(payload: Record<string, any>): Promise<any> {
+  if (payload.pass !== MOCK_ADMIN_PASS) return { ok: false, error: 'Wrong password' }
+  const s = readMock()
+  if (payload.sub === 'data') {
+    return {
+      ok: true,
+      lives: LIVES,
+      players: s.players.map((p) => ({
+        name: p.name,
+        pin: p.pin,
+        paid: p.paid,
+        picks: p.picks,
+        times: {},
+      })),
+    }
+  }
+  if (payload.sub === 'add') {
+    const name = String(payload.name || '').trim()
+    if (!name) return { ok: false, error: 'Name required' }
+    if (s.players.some((p) => p.name.toLowerCase() === name.toLowerCase()))
+      return { ok: false, error: 'Player already exists' }
+    s.players.push({ name, pin: String(payload.pin || ''), paid: false, picks: {} })
+    writeMock(s)
+    return { ok: true }
+  }
+  if (payload.sub === 'remove') {
+    const i = s.players.findIndex(
+      (p) => p.name.toLowerCase() === String(payload.name || '').toLowerCase(),
+    )
+    if (i < 0) return { ok: false, error: 'Player not found' }
+    s.players.splice(i, 1)
+    writeMock(s)
+    return { ok: true }
+  }
+  return { ok: false, error: 'Unknown admin action' }
+}
+
+const admin = (payload: Record<string, unknown>) =>
+  MOCK_MODE ? mockAdmin(payload) : realAdmin(payload)
+
+export function adminData(pass: string): Promise<AdminDataResponse> {
+  return admin({ sub: 'data', pass })
+}
+export function adminAddPlayer(pass: string, name: string, pin: string): Promise<AdminResult> {
+  return admin({ sub: 'add', pass, name, pin })
+}
+export function adminRemovePlayer(pass: string, name: string): Promise<AdminResult> {
+  return admin({ sub: 'remove', pass, name })
+}
+
 /** Wipe mock data (dev helper, exposed on window in App). */
 export function resetMock() {
   if (MOCK_MODE) localStorage.removeItem(MOCK_KEY)

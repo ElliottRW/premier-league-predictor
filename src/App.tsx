@@ -5,9 +5,10 @@ import { Dashboard } from './pages/Dashboard'
 import { MakePick } from './pages/MakePick'
 import { Standings } from './pages/Standings'
 import { Rules } from './pages/Rules'
+import { Admin } from './pages/Admin'
 import { MOCK_MODE } from './config'
 
-type Tab = 'home' | 'pick' | 'standings' | 'rules'
+type Tab = 'home' | 'pick' | 'standings' | 'rules' | 'admin'
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'home', label: 'Home', icon: '🏠' },
@@ -34,13 +35,24 @@ export default function App() {
               {MOCK_MODE && <span className="ml-2 text-amber-400">· demo data</span>}
             </p>
           </div>
-          <button
-            onClick={data.refresh}
-            title="Refresh"
-            className="rounded-full h-9 w-9 grid place-items-center bg-white/5 hover:bg-white/10 border border-[var(--color-border)] transition"
-          >
-            ↻
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTab('admin')}
+              title="Admin"
+              className={`rounded-full h-9 w-9 grid place-items-center border border-[var(--color-border)] transition ${
+                tab === 'admin' ? 'bg-[var(--color-brand)]/20 text-[var(--color-brand)]' : 'bg-white/5 hover:bg-white/10'
+              }`}
+            >
+              ⚙️
+            </button>
+            <button
+              onClick={data.refresh}
+              title="Refresh"
+              className="rounded-full h-9 w-9 grid place-items-center bg-white/5 hover:bg-white/10 border border-[var(--color-border)] transition"
+            >
+              ↻
+            </button>
+          </div>
         </div>
         {/* Tabs — equal thirds on mobile, compact & left-aligned on desktop */}
         <nav className="px-2 flex gap-1">
@@ -74,6 +86,7 @@ export default function App() {
             {tab === 'pick' && <MakePick data={data} onDone={data.refresh} goHome={() => setTab('home')} />}
             {tab === 'standings' && <Standings data={data} />}
             {tab === 'rules' && <Rules />}
+            {tab === 'admin' && <Admin data={data} onExit={() => setTab('home')} />}
           </div>
         )}
       </main>
