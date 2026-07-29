@@ -14,18 +14,28 @@
  * Security note: the 2-digit PIN prevents *accidentally* picking as the wrong
  * player. It's verified here, server-side, and PINs are never sent to browsers.
  *
- * ADMIN: set ADMIN_PASSWORD below to enable the app's Admin screen (add/remove
- * players, view everyone's picks and when they were made). Every pick is also
+ * ADMIN: to enable the app's Admin screen (add/remove players, view everyone's
+ * picks and when they were made), set an admin password. Every pick is also
  * logged to a "Log" tab (auto-created) so you have a timestamped audit trail.
+ *
+ * Recommended — keep the password OUT of this (public) file using a Script
+ * Property: Apps Script editor ▸ Project Settings (gear) ▸ Script Properties ▸
+ * add  ADMIN_PASSWORD = your-secret.  Changes take effect immediately, no
+ * re-deploy needed. (The ADMIN_PASSWORD constant below is only a fallback.)
  */
 
 var SHEET_NAME = 'Picks';
 var LOG_NAME = 'Log';
 var LIVES = 3;
 
-// Set this to a private password to unlock the Admin screen. Leave as '' to keep
-// admin disabled. Change it, then re-deploy the web app.
+// Fallback only — prefer the ADMIN_PASSWORD Script Property (see above) so the
+// password never lives in this public repo. Leave '' to rely on the property.
 var ADMIN_PASSWORD = '';
+
+function getAdminPassword() {
+  var p = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
+  return p != null && p !== '' ? p : ADMIN_PASSWORD;
+}
 
 /* ----------------------------- HTTP handlers ----------------------------- */
 
@@ -146,8 +156,9 @@ function submitPick(body) {
 /* ------------------------------- Admin ----------------------------------- */
 
 function handleAdmin(body) {
-  if (!ADMIN_PASSWORD) return { ok: false, error: 'Admin is not enabled' };
-  if (String(body.pass || '') !== ADMIN_PASSWORD) return { ok: false, error: 'Wrong password' };
+  var pass = getAdminPassword();
+  if (!pass) return { ok: false, error: 'Admin is not enabled' };
+  if (String(body.pass || '') !== pass) return { ok: false, error: 'Wrong password' };
 
   var sub = body.sub;
   if (sub === 'data') return adminData();

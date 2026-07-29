@@ -113,11 +113,18 @@ browser network restrictions.
 
 There's a password-protected Admin screen — the **⚙️ icon** in the app header.
 
-To enable it:
+To enable it, set an admin password. **Use a Script Property** so the password
+never lives in this public repo:
 
-1. In `apps-script/Code.gs`, set `ADMIN_PASSWORD` to a private password.
-2. **Re-deploy** the web app (Manage deployments ▸ edit ▸ New version — keeps the
-   same URL). Reminder: editing `Code.gs` only takes effect once you re-deploy.
+1. Apps Script editor ▸ **Project Settings** (the ⚙️ gear on the left) ▸ scroll to
+   **Script Properties** ▸ **Add script property** ▸ name `ADMIN_PASSWORD`, value
+   = your secret ▸ Save.
+2. That's it — property changes take effect immediately, **no re-deploy needed**.
+
+(GitHub repo variables/secrets can't be used here: `Code.gs` runs on Google Apps
+Script, which has no access to GitHub. A Script Property is the Google equivalent.
+There's also an `ADMIN_PASSWORD` constant in `Code.gs` as a fallback, but don't
+put a real password there — it would be committed to the public repo.)
 
 Then click ⚙️, enter the password, and you can:
 
