@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { GameData } from '../lib/useGameData'
 import type { AdminPlayer } from '../lib/sheet'
-import { adminAddPlayer, adminData, adminRemovePlayer } from '../lib/sheet'
+import { adminAddPlayer, adminData, adminRemovePlayer, adminSetPaid } from '../lib/sheet'
 import { findTeam } from '../lib/teams'
 import { Crest } from '../components/ui'
 
@@ -61,6 +61,22 @@ export function Admin({ data, onExit }: { data: GameData; onExit: () => void }) 
         setNewName('')
         setNewPin('')
         setActionMsg(`Added ${newName.trim()}`)
+        await reload()
+        data.refresh()
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function togglePaid(name: string, paid: boolean) {
+    setBusy(true)
+    setActionMsg(null)
+    try {
+      const res = await adminSetPaid(pass, name, paid)
+      if (!res.ok) {
+        setActionMsg(res.error || 'Could not update')
+      } else {
         await reload()
         data.refresh()
       }
@@ -177,8 +193,21 @@ export function Admin({ data, onExit }: { data: GameData; onExit: () => void }) 
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-semibold">{p.name}</div>
-                  <div className="text-xs text-white/40">
-                    PIN {p.pin || '—'} · {p.paid ? 'Paid' : 'Unpaid'}
+                  <div className="mt-1 flex items-center gap-2 text-xs text-white/40">
+                    <span>PIN {p.pin || '—'}</span>
+                    <span>·</span>
+                    <button
+                      onClick={() => togglePaid(p.name, !p.paid)}
+                      disabled={busy}
+                      title="Toggle paid"
+                      className={`rounded-full border px-2 py-0.5 font-medium transition disabled:opacity-40 ${
+                        p.paid
+                          ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'
+                          : 'border-white/10 bg-white/5 text-white/50 hover:bg-white/10'
+                      }`}
+                    >
+                      {p.paid ? '✓ Paid' : 'Unpaid'}
+                    </button>
                   </div>
                 </div>
                 <button

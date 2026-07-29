@@ -164,6 +164,7 @@ function handleAdmin(body) {
   if (sub === 'data') return adminData();
   if (sub === 'add') return adminAddPlayer(body);
   if (sub === 'remove') return adminRemovePlayer(body);
+  if (sub === 'setPaid') return adminSetPaid(body);
   return { ok: false, error: 'Unknown admin action' };
 }
 
@@ -241,6 +242,29 @@ function adminRemovePlayer(body) {
     for (var r = 1; r < values.length; r++) {
       if (String(values[r][col.name] || '').trim().toLowerCase() === name.toLowerCase()) {
         sheet.deleteRow(r + 1); // 1-indexed
+        return { ok: true };
+      }
+    }
+    return { ok: false, error: 'Player not found' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function adminSetPaid(body) {
+  var name = String(body.name || '').trim();
+  var paid = body.paid ? 'Y' : 'N';
+  if (!name) return { ok: false, error: 'Name required' };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var sheet = getSheet();
+    var values = sheet.getDataRange().getValues();
+    var col = columnMap(headerRow(values));
+    for (var r = 1; r < values.length; r++) {
+      if (String(values[r][col.name] || '').trim().toLowerCase() === name.toLowerCase()) {
+        sheet.getRange(r + 1, col.paid + 1).setValue(paid);
         return { ok: true };
       }
     }

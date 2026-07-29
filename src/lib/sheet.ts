@@ -221,6 +221,15 @@ async function mockAdmin(payload: Record<string, any>): Promise<any> {
     writeMock(s)
     return { ok: true }
   }
+  if (payload.sub === 'setPaid') {
+    const p = s.players.find(
+      (x) => x.name.toLowerCase() === String(payload.name || '').toLowerCase(),
+    )
+    if (!p) return { ok: false, error: 'Player not found' }
+    p.paid = Boolean(payload.paid)
+    writeMock(s)
+    return { ok: true }
+  }
   return { ok: false, error: 'Unknown admin action' }
 }
 
@@ -235,6 +244,9 @@ export function adminAddPlayer(pass: string, name: string, pin: string): Promise
 }
 export function adminRemovePlayer(pass: string, name: string): Promise<AdminResult> {
   return admin({ sub: 'remove', pass, name })
+}
+export function adminSetPaid(pass: string, name: string, paid: boolean): Promise<AdminResult> {
+  return admin({ sub: 'setPaid', pass, name, paid })
 }
 
 /** Wipe mock data (dev helper, exposed on window in App). */
