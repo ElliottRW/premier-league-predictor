@@ -8,10 +8,28 @@ import { Crest, Hearts, Countdown, StatCard, Pill } from '../components/ui'
 import { FixtureCard } from '../components/FixtureCard'
 
 export function Dashboard({ data }: { data: GameData }) {
-  const { current, currentFixtures, standings, lives, teams, now } = data
+  const { current, currentFixtures, standings, lives, teams, now, schedule, roundFixtures } = data
   const survivors = standings.filter((s) => !s.out)
   const eliminated = standings.filter((s) => s.out)
   const locked = current ? now.getTime() >= new Date(current.deadline).getTime() : false
+
+  // Any upcoming round (this week or an advance pick) where a survivor's pick is
+  // for a team that no longer plays that round — flag as early as possible.
+  const affectedRounds: { round: number; count: number }[] = []
+  if (current && schedule) {
+    for (const r of schedule.rounds) {
+      if (r.round < current.round) continue // past rounds are already settled
+      const fixtures = roundFixtures.get(r.round)
+      if (!fixtures || fixtures.length === 0) continue // fixtures not loaded — can't tell
+      let count = 0
+      for (const s of survivors) {
+        const raw = s.player.picks[gwKey(r.round)]
+        const t = findTeam(teams, raw)
+        if (raw && t && !fixtureForTeam(fixtures, t.id)) count++
+      }
+      if (count > 0) affectedRounds.push({ round: r.round, count })
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -24,6 +42,17 @@ export function Dashboard({ data }: { data: GameData }) {
         />
         <StatCard label="Still in" value={`${survivors.length}`} />
       </div>
+
+      {/* Fixture-change nudge — covers this week and any advance picks */}
+      {affectedRounds.length > 0 && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
+          ⚠️ Fixtures changed — some picks are for teams no longer playing:{' '}
+          <span className="font-semibold">
+            {affectedRounds.map((a) => `GW${a.round} (${a.count})`).join(', ')}
+          </span>
+          . Affected players should re-pick before that week's deadline.
+        </div>
+      )}
 
       {/* Two columns on desktop: standings left, fixtures right. Stacks on mobile. */}
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
@@ -42,6 +71,7 @@ export function Dashboard({ data }: { data: GameData }) {
             const pickTeam = findTeam(teams, pickRaw)
             const fx = pickTeam ? fixtureForTeam(currentFixtures, pickTeam.id) : undefined
             const oc = fx && pickTeam ? outcomeFor(fx, pickTeam.id) : 'pending'
+            const noGame = Boolean(pickTeam) && currentFixtures.length > 0 && !fx
             return (
               <div key={s.player.name} className="flex items-center gap-3 px-3 py-2.5">
                 <div className="min-w-0 flex-1">
@@ -60,9 +90,14 @@ export function Dashboard({ data }: { data: GameData }) {
                       {oc === 'win' && <Pill tone="green">Won</Pill>}
                       {oc === 'loss' && <Pill tone="red">Lost</Pill>}
                       {oc === 'draw' && <Pill tone="red">Drew</Pill>}
-                      {oc === 'pending' && <Pill tone={fx?.state === 'in' ? 'live' : 'neutral'}>
-                        {fx?.state === 'in' ? 'Live' : 'To play'}
-                      </Pill>}
+                      {oc === 'pending' &&
+                        (noGame ? (
+                          <Pill tone="neutral">No game</Pill>
+                        ) : (
+                          <Pill tone={fx?.state === 'in' ? 'live' : 'neutral'}>
+                            {fx?.state === 'in' ? 'Live' : 'To play'}
+                          </Pill>
+                        ))}
                     </div>
                   ) : (
                     <Pill tone="neutral">{pickRaw}</Pill>

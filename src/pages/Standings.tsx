@@ -9,6 +9,7 @@ const gradeStyle: Record<Grade, string> = {
   draw: 'bg-rose-500/20 border-rose-500/40',
   loss: 'bg-rose-500/25 border-rose-500/50',
   missed: 'bg-amber-500/20 border-amber-500/40',
+  void: 'bg-sky-500/15 border-sky-500/40 border-dashed',
   pending: 'bg-white/5 border-white/10',
   out: 'bg-black/40 border-white/5',
 }
@@ -29,6 +30,7 @@ export function Standings({ data }: { data: GameData }) {
         <Legend className="bg-emerald-500/30" label="Win" />
         <Legend className="bg-rose-500/30" label="Draw / Loss" />
         <Legend className="bg-amber-500/30" label="No pick" />
+        <Legend className="bg-sky-500/30" label="No game (safe)" />
         <Legend className="bg-white/10" label="To play" />
       </div>
 
@@ -140,7 +142,7 @@ function Cell({ res, maskedPicked }: { res?: PickResult; maskedPicked?: boolean 
   return (
     <div
       className={`mx-auto grid h-9 w-9 place-items-center rounded-md border ${gradeStyle[res.grade]}`}
-      title={`${res.team?.name ?? res.pickRaw ?? ''} · ${res.grade}`}
+      title={`${res.team?.name ?? res.pickRaw ?? ''} · ${res.grade === 'void' ? 'no game (safe)' : res.grade}`}
     >
       {res.team ? <Crest team={res.team} size={22} /> : <span className="text-[10px]">?</span>}
     </div>

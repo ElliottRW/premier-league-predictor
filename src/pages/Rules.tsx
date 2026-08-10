@@ -65,6 +65,10 @@ export function Rules() {
           Change your mind as often as you like — you can switch your pick right up until the deadline.
           Only your final choice counts.
         </Rule>
+        <Rule icon="📅" title="Pick weeks in advance">
+          Going on holiday or away for annual leave? On the Make Pick screen you can choose a future
+          gameweek and pick for it now. You can still change it any time before that week's deadline.
+        </Rule>
         <Rule icon="⏰" title="Deadline is midday">
           Picks lock at <strong className="text-white/80">12 noon (UK)</strong> on the day of the round's
           first match. If that match is on a weekend, the deadline moves to the{' '}
@@ -73,6 +77,12 @@ export function Rules() {
         <Rule icon="🙈" title="Picks are hidden until lock-in">
           Nobody can see your pick before the deadline. The moment it passes, everyone's team is
           revealed and results roll in.
+        </Rule>
+        <Rule icon="🔀" title="If your team's game gets moved">
+          The Premier League can postpone fixtures at short notice. If your picked team ends up{' '}
+          <strong className="text-white/80">not playing</strong> that gameweek, it counts as “no game”
+          — you don't lose a life. The app flags it so you can re-pick a team that is playing, if you'd
+          rather.
         </Rule>
         <Rule icon="⚔️" title="Double gameweeks — first game counts">
           If your team plays twice in one gameweek, only their <strong className="text-white/80">first

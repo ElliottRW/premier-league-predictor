@@ -72,10 +72,19 @@ export function useGameData(): GameData {
       const current = currentRound(schedule, now) ?? null
       const played = playedRounds(schedule, now)
 
-      // Rounds we need fixtures for: everything played + the current round.
+      // Rounds we need fixtures for: everything played + the current round +
+      // every round anyone has picked for (so advance picks can be checked
+      // against the latest fixtures and flagged if their team stops playing).
       const needed = new Map<number, Round>()
       for (const r of played) needed.set(r.round, r)
       if (current) needed.set(current.round, current)
+      for (const p of playersRes.players) {
+        for (const key of Object.keys(p.picks)) {
+          const n = Number(key.replace(/\D/g, ''))
+          const r = schedule.rounds.find((x) => x.round === n)
+          if (r) needed.set(n, r)
+        }
+      }
 
       // Seed from the static results cache (finished rounds) — fast, no network.
       // Then fetch from ESPN only for rounds not cached, plus always the current

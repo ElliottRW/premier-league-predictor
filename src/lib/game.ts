@@ -12,7 +12,10 @@ import { findTeam } from './teams'
 import type { Fixture, Outcome } from './espn'
 import { fixtureForTeam, outcomeFor } from './espn'
 
-export type Grade = Outcome | 'missed' | 'out'
+// 'void' = the picked team had no game that round (fixture postponed / blank
+// gameweek). Treated as safe (no life lost) — you can't lose on a game that
+// wasn't played. 'pending' = result/ fixtures not in yet.
+export type Grade = Outcome | 'missed' | 'void' | 'out'
 
 export interface PickResult {
   round: number
@@ -86,10 +89,14 @@ export function computeStanding(
     let grade: Grade
     if (!pickRaw) {
       grade = 'missed'
-    } else if (!fixture) {
-      grade = 'pending' // team not found in this round's fixtures yet
+    } else if (!team) {
+      grade = 'pending' // couldn't match the pick name to a team
+    } else if (fixture) {
+      grade = outcomeFor(fixture, team.id)
+    } else if (fixtures.length > 0) {
+      grade = 'void' // round loaded but this team has no game — postponed/blank GW
     } else {
-      grade = outcomeFor(fixture, team!.id)
+      grade = 'pending' // round's fixtures not loaded yet
     }
 
     if (costsLife(grade)) {
