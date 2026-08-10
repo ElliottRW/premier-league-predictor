@@ -29,7 +29,7 @@ export function Rules() {
       {/* Intro */}
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-br from-[var(--color-brand)]/25 to-transparent p-5">
-          <h1 className="text-xl font-extrabold">Last Man Standing — the rules</h1>
+          <h1 className="text-xl font-extrabold">Premier League Predictor — the rules</h1>
           <p className="mt-1 text-sm text-white/70">
             Pick one team each gameweek. Only a win keeps you alive. Last player standing wins.
           </p>
