@@ -31,7 +31,7 @@ export default function App() {
               <span>⚽</span> Premier League Predictor
             </h1>
             <p className="text-xs text-white/45">
-              Last Man Standing {data.schedule ? `· ${data.schedule.season}` : ''}
+              {data.schedule ? `${data.schedule.season} season` : 'Premier League'}
               {MOCK_MODE && <span className="ml-2 text-amber-400">· demo data</span>}
             </p>
           </div>
