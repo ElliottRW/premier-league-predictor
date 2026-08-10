@@ -272,7 +272,8 @@ export function MakePick({
               !fixtureForTeam(fixtures, currentPickTeam.id) && (
                 <div className="mb-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
                   ⚠️ <strong>{currentPickTeam.name}</strong> aren’t playing in GW{pickRound} anymore —
-                  the fixture was moved. Pick another team below so you don’t miss out.
+                  the fixture was moved. Pick another team below before the deadline, or you’ll lose a
+                  life.
                 </div>
               )}
 

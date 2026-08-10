@@ -13,8 +13,8 @@ import type { Fixture, Outcome } from './espn'
 import { fixtureForTeam, outcomeFor } from './espn'
 
 // 'void' = the picked team had no game that round (fixture postponed / blank
-// gameweek). Treated as safe (no life lost) — you can't lose on a game that
-// wasn't played. 'pending' = result/ fixtures not in yet.
+// gameweek) and the pick wasn't changed to a playing team before the deadline —
+// counts as a life lost. 'pending' = result / fixtures not in yet.
 export type Grade = Outcome | 'missed' | 'void' | 'out'
 
 export interface PickResult {
@@ -56,7 +56,7 @@ export function remainingTeams(player: Player, teams: Team[]): Team[] {
 
 /** A draw, loss or missed pick each cost a life. */
 function costsLife(g: Grade): boolean {
-  return g === 'draw' || g === 'loss' || g === 'missed'
+  return g === 'draw' || g === 'loss' || g === 'missed' || g === 'void'
 }
 
 /**

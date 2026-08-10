@@ -80,9 +80,10 @@ export function Rules() {
         </Rule>
         <Rule icon="🔀" title="If your team's game gets moved">
           The Premier League can postpone fixtures at short notice. If your picked team ends up{' '}
-          <strong className="text-white/80">not playing</strong> that gameweek, it counts as “no game”
-          — you don't lose a life. The app flags it so you can re-pick a team that is playing, if you'd
-          rather.
+          <strong className="text-white/80">not playing</strong> that gameweek and you{' '}
+          <strong className="text-white/80">don't change your pick in time</strong>, you{' '}
+          <strong className="text-white/80">lose a life</strong>. The app flags an affected pick so you
+          can switch to a team that's playing before the deadline.
         </Rule>
         <Rule icon="⚔️" title="Double gameweeks — first game counts">
           If your team plays twice in one gameweek, only their <strong className="text-white/80">first

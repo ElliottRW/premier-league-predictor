@@ -50,7 +50,7 @@ export function Dashboard({ data }: { data: GameData }) {
           <span className="font-semibold">
             {affectedRounds.map((a) => `GW${a.round} (${a.count})`).join(', ')}
           </span>
-          . Affected players should re-pick before that week's deadline.
+          . Those players must re-pick before that week's deadline or they'll lose a life.
         </div>
       )}
 
@@ -92,7 +92,7 @@ export function Dashboard({ data }: { data: GameData }) {
                       {oc === 'draw' && <Pill tone="red">Drew</Pill>}
                       {oc === 'pending' &&
                         (noGame ? (
-                          <Pill tone="neutral">No game</Pill>
+                          <Pill tone="amber">No game</Pill>
                         ) : (
                           <Pill tone={fx?.state === 'in' ? 'live' : 'neutral'}>
                             {fx?.state === 'in' ? 'Live' : 'To play'}
