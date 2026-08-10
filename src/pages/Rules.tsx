@@ -82,8 +82,11 @@ export function Rules() {
           The Premier League can postpone fixtures at short notice. If your picked team ends up{' '}
           <strong className="text-white/80">not playing</strong> that gameweek and you{' '}
           <strong className="text-white/80">don't change your pick in time</strong>, you{' '}
-          <strong className="text-white/80">lose a life</strong>. The app flags an affected pick so you
-          can switch to a team that's playing before the deadline.
+          <strong className="text-white/80">lose a life</strong> — the app flags an affected pick so
+          you can switch before the deadline. But if the change is{' '}
+          <strong className="text-white/80">last-minute</strong> (inside 48 hours of the deadline), the{' '}
+          <strong className="text-white/80">whole gameweek is voided</strong> — nobody loses a life and
+          picks don't count.
         </Rule>
         <Rule icon="⚔️" title="Double gameweeks — first game counts">
           If your team plays twice in one gameweek, only their <strong className="text-white/80">first

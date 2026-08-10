@@ -26,6 +26,8 @@ export interface Player {
 export interface PlayersResponse {
   players: Player[]
   lives: number
+  /** Gameweek numbers voided by the admin (last-minute fixture change). */
+  voided: number[]
 }
 
 export function gwKey(round: number): string {
@@ -40,7 +42,7 @@ async function realFetchPlayers(): Promise<PlayersResponse> {
   const res = await fetch(`${SHEET_BASE}?action=players&t=${Date.now()}`)
   if (!res.ok) throw new Error(`Sheet read ${res.status}`)
   const data = await res.json()
-  return { players: data.players ?? [], lives: data.lives ?? LIVES }
+  return { players: data.players ?? [], lives: data.lives ?? LIVES, voided: data.voided ?? [] }
 }
 
 async function realSubmitPick(name: string, pin: string, round: number, team: string) {
@@ -72,6 +74,7 @@ const MOCK_KEY = 'lms.mock.v1'
 
 interface MockStore {
   players: (Player & { pin: string })[]
+  voided?: number[]
 }
 
 function seed(): MockStore {
@@ -115,6 +118,7 @@ async function mockFetchPlayers(): Promise<PlayersResponse> {
   return {
     lives: LIVES,
     players: s.players.map(({ pin: _pin, ...p }) => p), // never expose PINs
+    voided: s.voided ?? [],
   }
 }
 
@@ -170,6 +174,7 @@ export interface AdminDataResponse {
   error?: string
   players: AdminPlayer[]
   lives: number
+  voided: number[]
 }
 
 type AdminResult = { ok: boolean; error?: string }
@@ -194,6 +199,7 @@ async function mockAdmin(payload: Record<string, any>): Promise<any> {
     return {
       ok: true,
       lives: LIVES,
+      voided: s.voided ?? [],
       players: s.players.map((p) => ({
         name: p.name,
         pin: p.pin,
@@ -202,6 +208,16 @@ async function mockAdmin(payload: Record<string, any>): Promise<any> {
         times: {},
       })),
     }
+  }
+  if (payload.sub === 'setVoid') {
+    const gw = Number(payload.gw)
+    if (!gw) return { ok: false, error: 'Bad gameweek' }
+    const list = new Set(s.voided ?? [])
+    if (payload.void) list.add(gw)
+    else list.delete(gw)
+    s.voided = [...list].sort((a, b) => a - b)
+    writeMock(s)
+    return { ok: true, voided: s.voided }
   }
   if (payload.sub === 'add') {
     const name = String(payload.name || '').trim()
@@ -247,6 +263,13 @@ export function adminRemovePlayer(pass: string, name: string): Promise<AdminResu
 }
 export function adminSetPaid(pass: string, name: string, paid: boolean): Promise<AdminResult> {
   return admin({ sub: 'setPaid', pass, name, paid })
+}
+export function adminSetVoid(
+  pass: string,
+  gw: number,
+  isVoid: boolean,
+): Promise<AdminResult & { voided?: number[] }> {
+  return admin({ sub: 'setVoid', pass, gw, void: isVoid })
 }
 
 /** Wipe mock data (dev helper, exposed on window in App). */

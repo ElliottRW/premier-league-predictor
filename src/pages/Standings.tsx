@@ -10,6 +10,7 @@ const gradeStyle: Record<Grade, string> = {
   loss: 'bg-rose-500/25 border-rose-500/50',
   missed: 'bg-amber-500/20 border-amber-500/40',
   void: 'bg-orange-500/20 border-orange-500/50 border-dashed',
+  voidweek: 'bg-white/5 border-white/15 opacity-50',
   pending: 'bg-white/5 border-white/10',
   out: 'bg-black/40 border-white/5',
 }
@@ -32,6 +33,7 @@ export function Standings({ data }: { data: GameData }) {
         <Legend className="bg-amber-500/30" label="No pick" />
         <Legend className="bg-orange-500/30" label="No game (−1 life)" />
         <Legend className="bg-white/10" label="To play" />
+        <Legend className="bg-white/10 opacity-50" label="Void week" />
       </div>
 
       <div className="card overflow-x-auto no-scrollbar">
@@ -142,7 +144,13 @@ function Cell({ res, maskedPicked }: { res?: PickResult; maskedPicked?: boolean 
   return (
     <div
       className={`mx-auto grid h-9 w-9 place-items-center rounded-md border ${gradeStyle[res.grade]}`}
-      title={`${res.team?.name ?? res.pickRaw ?? ''} · ${res.grade === 'void' ? 'no game (−1 life)' : res.grade}`}
+      title={`${res.team?.name ?? res.pickRaw ?? ''} · ${
+        res.grade === 'void'
+          ? 'no game (−1 life)'
+          : res.grade === 'voidweek'
+            ? 'gameweek voided (safe)'
+            : res.grade
+      }`}
     >
       {res.team ? <Crest team={res.team} size={22} /> : <span className="text-[10px]">?</span>}
     </div>

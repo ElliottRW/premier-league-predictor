@@ -39,6 +39,8 @@ export interface GameData {
   currentFixtures: Fixture[]
   roundFixtures: Map<number, Fixture[]>
   standings: Standing[]
+  /** Gameweek numbers voided by the admin (last-minute fixture change). */
+  voided: number[]
   now: Date
   refresh: () => void
 }
@@ -55,6 +57,7 @@ export function useGameData(): GameData {
     currentFixtures: [],
     roundFixtures: new Map(),
     standings: [],
+    voided: [],
     now: new Date(),
   })
 
@@ -103,8 +106,9 @@ export function useGameData(): GameData {
       )
 
       const playedNums = played.map((r) => r.round)
+      const voidedSet = new Set(playersRes.voided)
       const standings = playersRes.players
-        .map((p) => computeStanding(p, teams, roundFixtures, playedNums, playersRes.lives))
+        .map((p) => computeStanding(p, teams, roundFixtures, playedNums, playersRes.lives, voidedSet))
         .sort(sortStandings)
 
       setState({
@@ -118,6 +122,7 @@ export function useGameData(): GameData {
         currentFixtures: current ? (roundFixtures.get(current.round) ?? []) : [],
         roundFixtures,
         standings,
+        voided: playersRes.voided,
         now,
       })
     } catch (err) {

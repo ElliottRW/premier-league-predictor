@@ -24,7 +24,8 @@ export function MakePick({
   onDone: () => void
   goHome: () => void
 }) {
-  const { current, players, teams, schedule, roundFixtures, now } = data
+  const { current, players, teams, schedule, roundFixtures, now, voided } = data
+  const voidedSet = useMemo(() => new Set(voided), [voided])
   const [name, setName] = useState('')
   const [pin, setPin] = useState('')
   const [verified, setVerified] = useState(false)
@@ -70,13 +71,15 @@ export function MakePick({
     const usedElsewhere = new Set<string>()
     for (const [k, v] of Object.entries(player.picks)) {
       if (k === gwKey(pickRound)) continue
+      if (voidedSet.has(Number(k.replace(/\D/g, '')))) continue // voided week — team freed
       const t = findTeam(teams, v)
       if (t) usedElsewhere.add(t.id)
     }
     return teams.filter((t) => !usedElsewhere.has(t.id))
-  }, [player, pickRound, teams])
+  }, [player, pickRound, teams, voidedSet])
 
   const isAdvance = current ? pickRound > current.round : false
+  const roundVoided = voidedSet.has(pickRound)
   const lockedRound = roundMeta ? now.getTime() >= new Date(roundMeta.deadline).getTime() : true
 
   function resetPlayer() {
@@ -265,8 +268,16 @@ export function MakePick({
               </span>
             </label>
 
+            {roundVoided && (
+              <div className="mb-2 rounded-xl border border-sky-500/40 bg-sky-500/10 p-3 text-sm text-sky-200">
+                GW{pickRound} has been <strong>voided</strong> (a last-minute fixture change) — nobody
+                loses a life this week and picks don't count.
+              </div>
+            )}
+
             {/* Fixture-change warning: your pick's team no longer plays this round */}
-            {currentPickTeam &&
+            {!roundVoided &&
+              currentPickTeam &&
               fixtures &&
               fixtures.length > 0 &&
               !fixtureForTeam(fixtures, currentPickTeam.id) && (

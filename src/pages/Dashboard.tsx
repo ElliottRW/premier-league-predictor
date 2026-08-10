@@ -8,7 +8,9 @@ import { Crest, Hearts, Countdown, StatCard, Pill } from '../components/ui'
 import { FixtureCard } from '../components/FixtureCard'
 
 export function Dashboard({ data }: { data: GameData }) {
-  const { current, currentFixtures, standings, lives, teams, now, schedule, roundFixtures } = data
+  const { current, currentFixtures, standings, lives, teams, now, schedule, roundFixtures, voided } =
+    data
+  const voidedSet = new Set(voided)
   const survivors = standings.filter((s) => !s.out)
   const eliminated = standings.filter((s) => s.out)
   const locked = current ? now.getTime() >= new Date(current.deadline).getTime() : false
@@ -19,6 +21,7 @@ export function Dashboard({ data }: { data: GameData }) {
   if (current && schedule) {
     for (const r of schedule.rounds) {
       if (r.round < current.round) continue // past rounds are already settled
+      if (voidedSet.has(r.round)) continue // voided week — no one's penalised
       const fixtures = roundFixtures.get(r.round)
       if (!fixtures || fixtures.length === 0) continue // fixtures not loaded — can't tell
       let count = 0

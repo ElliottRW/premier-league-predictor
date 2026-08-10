@@ -12,10 +12,12 @@ import { findTeam } from './teams'
 import type { Fixture, Outcome } from './espn'
 import { fixtureForTeam, outcomeFor } from './espn'
 
-// 'void' = the picked team had no game that round (fixture postponed / blank
-// gameweek) and the pick wasn't changed to a playing team before the deadline —
-// counts as a life lost. 'pending' = result / fixtures not in yet.
-export type Grade = Outcome | 'missed' | 'void' | 'out'
+// 'void'     = the picked team had no game that round and the pick wasn't
+//              changed in time — counts as a life lost.
+// 'voidweek' = the whole gameweek was voided by the admin (last-minute fixture
+//              change) — costs nobody a life and the pick doesn't count.
+// 'pending'  = result / fixtures not in yet.
+export type Grade = Outcome | 'missed' | 'void' | 'voidweek' | 'out'
 
 export interface PickResult {
   round: number
@@ -34,11 +36,15 @@ export interface Standing {
   eliminatedRound?: number
 }
 
-/** Teams this player has already used (any round). */
-export function usedTeams(player: Player, teams: Team[]): Team[] {
+/**
+ * Teams this player has already used. Picks made in a voided gameweek don't
+ * count (the round is null and void), so those teams become free to pick again.
+ */
+export function usedTeams(player: Player, teams: Team[], voided: Set<number> = new Set()): Team[] {
   const out: Team[] = []
   const seen = new Set<string>()
-  for (const raw of Object.values(player.picks)) {
+  for (const [key, raw] of Object.entries(player.picks)) {
+    if (voided.has(roundOf(key))) continue
     const t = findTeam(teams, raw)
     if (t && !seen.has(t.id)) {
       seen.add(t.id)
@@ -49,9 +55,17 @@ export function usedTeams(player: Player, teams: Team[]): Team[] {
 }
 
 /** Teams still available to this player (not yet used). */
-export function remainingTeams(player: Player, teams: Team[]): Team[] {
-  const used = new Set(usedTeams(player, teams).map((t) => t.id))
+export function remainingTeams(
+  player: Player,
+  teams: Team[],
+  voided: Set<number> = new Set(),
+): Team[] {
+  const used = new Set(usedTeams(player, teams, voided).map((t) => t.id))
   return teams.filter((t) => !used.has(t.id))
+}
+
+function roundOf(gwKey: string): number {
+  return Number(gwKey.replace(/\D/g, ''))
 }
 
 /** A draw, loss or missed pick each cost a life. */
@@ -69,6 +83,7 @@ export function computeStanding(
   roundFixtures: Map<number, Fixture[]>,
   playedRoundNums: number[],
   lives: number,
+  voided: Set<number> = new Set(),
 ): Standing {
   const results: PickResult[] = []
   let livesLost = 0
@@ -83,6 +98,12 @@ export function computeStanding(
 
     if (out) {
       results.push({ round, pickRaw, team, fixture, grade: 'out' })
+      continue
+    }
+
+    // Admin-voided week: null and void — no life lost, pick doesn't count.
+    if (voided.has(round)) {
+      results.push({ round, pickRaw, team, fixture, grade: 'voidweek' })
       continue
     }
 

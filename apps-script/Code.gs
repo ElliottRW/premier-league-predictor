@@ -111,7 +111,35 @@ function getPlayers() {
       picks: picks,
     });
   }
-  return { players: players, lives: LIVES };
+  return { players: players, lives: LIVES, voided: getVoidedGws() };
+}
+
+/* --------------------------- Voided gameweeks ---------------------------- */
+
+// Voided rounds (a last-minute fixture change) are stored as a comma-separated
+// Script Property. A voided gameweek costs nobody a life and its picks don't
+// count. Admin-controlled (see adminSetVoid).
+function getVoidedGws() {
+  var raw = PropertiesService.getScriptProperties().getProperty('VOIDED_GWS') || '';
+  return raw
+    .split(',')
+    .map(function (s) {
+      return parseInt(s, 10);
+    })
+    .filter(function (n) {
+      return n > 0;
+    });
+}
+
+function setVoidedGws(arr) {
+  var uniq = [];
+  arr.forEach(function (n) {
+    if (n > 0 && uniq.indexOf(n) < 0) uniq.push(n);
+  });
+  uniq.sort(function (a, b) {
+    return a - b;
+  });
+  PropertiesService.getScriptProperties().setProperty('VOIDED_GWS', uniq.join(','));
 }
 
 /* ------------------------------- Write ----------------------------------- */
@@ -165,6 +193,7 @@ function handleAdmin(body) {
   if (sub === 'add') return adminAddPlayer(body);
   if (sub === 'remove') return adminRemovePlayer(body);
   if (sub === 'setPaid') return adminSetPaid(body);
+  if (sub === 'setVoid') return adminSetVoid(body);
   return { ok: false, error: 'Unknown admin action' };
 }
 
@@ -199,7 +228,22 @@ function adminData() {
       times: pickTimes,
     });
   }
-  return { ok: true, players: players, lives: LIVES };
+  return { ok: true, players: players, lives: LIVES, voided: getVoidedGws() };
+}
+
+function adminSetVoid(body) {
+  var gw = parseInt(body.gw, 10);
+  if (!gw || gw < 1) return { ok: false, error: 'Bad gameweek' };
+  var list = getVoidedGws();
+  if (body.void) {
+    if (list.indexOf(gw) < 0) list.push(gw);
+  } else {
+    list = list.filter(function (n) {
+      return n !== gw;
+    });
+  }
+  setVoidedGws(list);
+  return { ok: true, voided: getVoidedGws() };
 }
 
 function adminAddPlayer(body) {
