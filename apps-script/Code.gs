@@ -75,8 +75,8 @@ function verifyPlayer(body) {
   );
   for (var r = 1; r < values.length; r++) {
     if (String(values[r][col.name] || '').trim().toLowerCase() === name.toLowerCase()) {
-      var actualPin = String(values[r][col.pin] || '').trim();
-      if (actualPin && actualPin !== pin) return { ok: false, error: 'Incorrect PIN' };
+      var actualPin = normPin(values[r][col.pin]);
+      if (actualPin && actualPin !== normPin(pin)) return { ok: false, error: 'Incorrect PIN' };
       return { ok: true };
     }
   }
@@ -167,8 +167,8 @@ function submitPick(body) {
 
     for (var r = 1; r < values.length; r++) {
       if (String(values[r][col.name] || '').trim().toLowerCase() === name.toLowerCase()) {
-        var actualPin = String(values[r][col.pin] || '').trim();
-        if (actualPin && actualPin !== pin) return { ok: false, error: 'Incorrect PIN' };
+        var actualPin = normPin(values[r][col.pin]);
+        if (actualPin && actualPin !== normPin(pin)) return { ok: false, error: 'Incorrect PIN' };
         // Row/column are 1-indexed in getRange.
         sheet.getRange(r + 1, col.gw[gw] + 1).setValue(team);
         logPick(name, gw, team);
@@ -222,7 +222,7 @@ function adminData() {
     }
     players.push({
       name: name,
-      pin: String(row[col.pin] || '').trim(),
+      pin: normPin(row[col.pin]),
       paid: /^y(es)?$/i.test(String(row[col.paid] || '').trim()),
       picks: picks,
       times: pickTimes,
@@ -265,8 +265,13 @@ function adminAddPlayer(body) {
     var newRow = new Array(sheet.getLastColumn()).fill('');
     newRow[col.name] = name;
     newRow[col.paid] = 'N';
-    newRow[col.pin] = pin;
     sheet.appendRow(newRow);
+    // Write the PIN as text so leading zeros (e.g. "03") aren't lost.
+    if (pin) {
+      var pinCell = sheet.getRange(sheet.getLastRow(), col.pin + 1);
+      pinCell.setNumberFormat('@');
+      pinCell.setValue(pin);
+    }
     return { ok: true };
   } finally {
     lock.releaseLock();
@@ -362,6 +367,16 @@ function headerRow(values) {
   return values[0].map(function (h) {
     return String(h).trim();
   });
+}
+
+// Normalise a PIN for comparison. Google Sheets stores "03" as the number 3
+// (leading zero dropped), so we pad to 2 digits both sides — "3" and "03" match.
+// Empty stays empty (no PIN set = no PIN required).
+function normPin(p) {
+  var s = String(p == null ? '' : p).trim();
+  if (!s) return '';
+  while (s.length < 2) s = '0' + s;
+  return s;
 }
 
 function getSheet() {

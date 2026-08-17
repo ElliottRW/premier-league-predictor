@@ -170,9 +170,10 @@ ESPN in real time, so in-progress results are always up to the minute.)
 
 - **App shows “demo data”** → `VITE_SHEET_URL` isn't set (locally: `.env`; live:
   repo variable), or you didn't rebuild after setting it.
-- **“Incorrect PIN”** → the PIN column value doesn't match. PINs are compared as
-  text; make sure the sheet cell isn't reformatting `01` into `1`
-  (format the PIN column as **Plain text**).
+- **“Incorrect PIN”** → the entered PIN doesn't match the sheet's PIN cell.
+  Leading zeros are handled automatically — the backend pads both to two digits,
+  so a sheet value of `3` and an entered `03` match. (New players added via the
+  Admin screen store their PIN as text, keeping the leading zero in the sheet.)
 - **“Player not found”** → the name in the dropdown must match the sheet's Name
   cell exactly.
 - **Picks not saving** → confirm the Apps Script deployment access is **Anyone**
