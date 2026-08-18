@@ -23,7 +23,8 @@ let cache: GameweekSchedule | null = null
 
 export async function loadSchedule(): Promise<GameweekSchedule> {
   if (cache) return cache
-  const res = await fetch(`${import.meta.env.BASE_URL}data/gameweeks.json`)
+  // cache-bust so a browser never serves a stale schedule (it refreshes daily)
+  const res = await fetch(`${import.meta.env.BASE_URL}data/gameweeks.json?t=${Date.now()}`)
   if (!res.ok) throw new Error(`gameweeks.json ${res.status}`)
   cache = (await res.json()) as GameweekSchedule
   return cache

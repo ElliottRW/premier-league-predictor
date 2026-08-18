@@ -11,7 +11,7 @@ let cache: Map<number, Fixture[]> | null = null
 export async function loadResults(): Promise<Map<number, Fixture[]>> {
   if (cache) return cache
   try {
-    const res = await fetch(`${import.meta.env.BASE_URL}data/results.json`)
+    const res = await fetch(`${import.meta.env.BASE_URL}data/results.json?t=${Date.now()}`)
     if (!res.ok) return new Map()
     const data = await res.json()
     const m = new Map<number, Fixture[]>()

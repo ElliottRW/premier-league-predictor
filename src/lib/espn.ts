@@ -100,7 +100,7 @@ export async function fetchFixtures(start: string, end: string): Promise<Fixture
  * can. Team crests are plain <img> URLs, unaffected by CORS.
  */
 export async function loadTeams(): Promise<Team[]> {
-  const res = await fetch(`${import.meta.env.BASE_URL}data/teams.json`)
+  const res = await fetch(`${import.meta.env.BASE_URL}data/teams.json?t=${Date.now()}`)
   if (!res.ok) throw new Error(`teams.json ${res.status}`)
   const data = await res.json()
   return (data.teams ?? []) as Team[]
