@@ -3,8 +3,12 @@ name: Refresh fixtures
 # Regenerates gameweeks.json, teams.json and results.json daily and commits any
 # changes: keeps round date-windows accurate after reschedules, and caches each
 # newly-finished round's results so old rounds load fast (instead of live ESPN).
-# Live/in-progress results are still read from ESPN in the browser. A push here
-# re-triggers the Pages deploy.
+# Live/in-progress results are still read from ESPN in the browser.
+#
+# NOTE: a commit pushed with the default GITHUB_TOKEN does NOT trigger other
+# workflows (GitHub's recursion guard), so this job explicitly dispatches the
+# Pages deploy afterwards — otherwise the refreshed data would sit on main but
+# never reach the live site.
 
 on:
   schedule:
@@ -13,6 +17,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # needed to dispatch the deploy workflow
 
 jobs:
   refresh:
@@ -34,3 +39,7 @@ jobs:
           else
             echo "No changes."
           fi
+      - name: Deploy the refreshed data to Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main
