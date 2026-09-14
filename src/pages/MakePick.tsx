@@ -24,7 +24,7 @@ export function MakePick({
   onDone: () => void
   goHome: () => void
 }) {
-  const { current, players, teams, schedule, roundFixtures, now, voided } = data
+  const { current, players, teams, schedule, roundFixtures, now, voided, standings } = data
   const voidedSet = useMemo(() => new Set(voided), [voided])
   const [name, setName] = useState('')
   const [pin, setPin] = useState('')
@@ -39,6 +39,8 @@ export function MakePick({
   const [done, setDone] = useState<{ team: Team; round: number } | null>(null)
 
   const player = players.find((p) => p.name === name)
+  const myStanding = standings.find((s) => s.player.name === name)
+  const isOut = myStanding?.out ?? false
   const roundMeta = schedule?.rounds.find((r) => r.round === pickRound) ?? null
 
   // Rounds you can still pick for: the current one onwards (all future ones too).
@@ -183,8 +185,17 @@ export function MakePick({
         </select>
       </div>
 
+      {/* Eliminated players can no longer make or change picks */}
+      {player && isOut && (
+        <div className="card p-4 text-sm text-white/70">
+          🚫 <strong>{name}</strong> has been eliminated
+          {myStanding?.eliminatedRound ? ` in GW${myStanding.eliminatedRound}` : ''} and can no
+          longer make picks.
+        </div>
+      )}
+
       {/* Step 2: verify PIN (gate — reveals nothing until confirmed) */}
-      {player && !verified && (
+      {player && !isOut && !verified && (
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-white/70">
             2 · Enter your 2-digit PIN
@@ -221,7 +232,7 @@ export function MakePick({
       )}
 
       {/* Step 3: choose the gameweek + pick a team (after PIN verified) */}
-      {player && verified && (
+      {player && !isOut && verified && (
         <>
           <div>
             <div className="mb-1.5 flex items-center justify-between">
