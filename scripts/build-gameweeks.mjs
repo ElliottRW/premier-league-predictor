@@ -178,11 +178,14 @@ async function buildTeams() {
 
 /* ------------------------------ Results ---------------------------------- */
 
-// Cache the fixtures + final scores of FINISHED rounds into results.json, so the
-// app loads old results from one static file instead of hitting ESPN once per
-// past round on every page load. Shape matches the app's Fixture type (espn.ts),
-// so the runtime can use it as-is. Live/in-progress rounds are still read from
-// ESPN in the browser.
+// Cache fixtures into results.json for every round EXCEPT the one currently in
+// progress: finished rounds get their final scores, future rounds get their
+// (not-yet-started) fixture list. This lets the app load almost everything
+// from one static file instead of hitting ESPN live on every page load —
+// including every gameweek someone has an advance pick for, which otherwise
+// meant one live ESPN request per day in that round, per visit. Shape matches
+// the app's Fixture type (espn.ts), so the runtime can use it as-is. Only the
+// in-progress round is still read live from ESPN in the browser.
 
 function mapEvent(e) {
   const comp = e.competitions?.[0]
@@ -244,12 +247,27 @@ async function buildResults(schedule) {
   const now = Date.now()
   const rounds = {}
   for (const r of schedule.rounds) {
-    // Only rounds whose window has fully passed are candidates for the cache.
-    if (new Date(`${r.end}T23:59:59Z`).getTime() > now) continue
+    const started = new Date(`${r.start}T00:00:00Z`).getTime() <= now
+    const ended = new Date(`${r.end}T23:59:59Z`).getTime() <= now
+    // A round whose window is currently in progress is always fetched live by
+    // the app (it needs up-to-the-minute scores), so there's no point caching
+    // it here — skip it.
+    if (started && !ended) continue
     try {
       const fx = await fetchRoundFixtures(r)
-      // Store only fully-finalised rounds; anything unfinished stays live.
-      if (fx.length && fx.every((f) => f.completed)) rounds[r.round] = fx
+      if (fx.length === 0) continue
+      if (ended) {
+        // Finished window — only cache once every match is confirmed final,
+        // so a postponed/rescheduled game doesn't freeze a stale score for
+        // up to a day until the next refresh.
+        if (fx.every((f) => f.completed)) rounds[r.round] = fx
+      } else {
+        // Future window — nothing has kicked off yet, so this is just the
+        // fixture list (kickoff times, no scores). Safe to cache as-is; it
+        // lets the app check advance picks against upcoming fixtures without
+        // hitting ESPN live for every gameweek someone has picked ahead for.
+        rounds[r.round] = fx
+      }
     } catch {
       /* skip this round; the app will fall back to live ESPN */
     }
@@ -282,10 +300,10 @@ async function main() {
   console.log(`✓ ${teams.length} teams → ${TEAMS_OUT}`)
   if (teams.length !== 20) console.warn(`  ! expected 20 teams, got ${teams.length}`)
 
-  // Cached results of finished rounds (speeds up load; empty pre-season).
+  // Cached fixtures for every round but the in-progress one (speeds up load).
   const results = await buildResults(schedule)
   await writeFile(RESULTS_OUT, JSON.stringify(results) + '\n')
-  console.log(`✓ ${Object.keys(results.rounds).length} finished rounds cached → ${RESULTS_OUT}`)
+  console.log(`✓ ${Object.keys(results.rounds).length} rounds cached → ${RESULTS_OUT}`)
 
   const dgw = schedule.rounds.filter((r) => r.fixtureCount > 10)
   console.log(
