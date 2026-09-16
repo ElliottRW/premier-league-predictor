@@ -80,14 +80,38 @@ function mapEvent(e: any): Fixture | null {
   }
 }
 
-/** Fetch fixtures/results for a date range (inclusive), YYYY-MM-DD strings. */
-export async function fetchFixtures(start: string, end: string): Promise<Fixture[]> {
-  const url = `${BASE}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=200`
+async function fetchDay(day: string): Promise<any[]> {
+  const url = `${BASE}/scoreboard?dates=${day}&limit=200`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`ESPN fixtures ${res.status}`)
   const data = await res.json()
-  const events: any[] = data.events ?? []
-  return events
+  return data.events ?? []
+}
+
+/**
+ * Fetch fixtures/results for a date range (inclusive), YYYY-MM-DD strings.
+ *
+ * ESPN's scoreboard endpoint used to accept a `dates=START-END` range, but it
+ * now rejects any range (even a single-day one) with a 400 — only a bare
+ * `dates=YYYYMMDD` works. So we fetch one day at a time and merge, deduping
+ * by event id (a fixture can appear in more than one day's response).
+ */
+export async function fetchFixtures(start: string, end: string): Promise<Fixture[]> {
+  const days: string[] = []
+  const cursor = new Date(`${start}T00:00:00Z`)
+  const last = new Date(`${end}T00:00:00Z`)
+  while (cursor <= last) {
+    days.push(fmt(cursor))
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  }
+
+  const byId = new Map<string, any>()
+  const results = await Promise.all(days.map((d) => fetchDay(d)))
+  for (const events of results) {
+    for (const e of events) byId.set(String(e.id), e)
+  }
+
+  return [...byId.values()]
     .map(mapEvent)
     .filter((f): f is Fixture => f !== null)
     .sort((a, b) => a.date.localeCompare(b.date))

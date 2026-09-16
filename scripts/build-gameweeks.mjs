@@ -108,16 +108,16 @@ async function buildFromESPN() {
   const from = new Date(Date.UTC(seasonYear, 6, 1))
   const to = new Date(Date.UTC(seasonYear + 1, 5, 30))
 
+  // ESPN's scoreboard endpoint used to accept a `dates=START-END` range, but it
+  // now rejects any range (even a single-day one) with a 400 — only a bare
+  // `dates=YYYYMMDD` works. So we fetch one day at a time across the season.
   const byId = new Map()
   const cursor = new Date(from)
   while (cursor <= to) {
-    const chunkEnd = new Date(cursor)
-    chunkEnd.setUTCDate(chunkEnd.getUTCDate() + 27)
-    const end = chunkEnd > to ? to : chunkEnd
-    const url = `${ESPN}/scoreboard?dates=${yyyymmdd(cursor)}-${yyyymmdd(end)}&limit=500`
+    const url = `${ESPN}/scoreboard?dates=${yyyymmdd(cursor)}&limit=500`
     const data = await (await fetch(url)).json()
     for (const e of data.events ?? []) byId.set(String(e.id), e)
-    cursor.setUTCDate(cursor.getUTCDate() + 28)
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
   }
 
   const fixtures = [...byId.values()]
@@ -183,7 +183,6 @@ async function buildTeams() {
 // past round on every page load. Shape matches the app's Fixture type (espn.ts),
 // so the runtime can use it as-is. Live/in-progress rounds are still read from
 // ESPN in the browser.
-const yyyymmddStr = (d) => d.replaceAll('-', '')
 
 function mapEvent(e) {
   const comp = e.competitions?.[0]
@@ -216,10 +215,26 @@ function mapEvent(e) {
   }
 }
 
+// ESPN's scoreboard endpoint used to accept a `dates=START-END` range, but it
+// now rejects any range (even a single-day one) with a 400 — only a bare
+// `dates=YYYYMMDD` works. So we fetch one day at a time and merge, deduping
+// by event id (a fixture can appear in more than one day's response).
 async function fetchRoundFixtures(round) {
-  const url = `${ESPN}/scoreboard?dates=${yyyymmddStr(round.start)}-${yyyymmddStr(round.end)}&limit=200`
-  const data = await (await fetch(url)).json()
-  return (data.events ?? [])
+  const days = []
+  const cursor = new Date(`${round.start}T00:00:00Z`)
+  const last = new Date(`${round.end}T00:00:00Z`)
+  while (cursor <= last) {
+    days.push(yyyymmdd(cursor))
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  }
+
+  const byId = new Map()
+  for (const day of days) {
+    const data = await (await fetch(`${ESPN}/scoreboard?dates=${day}&limit=200`)).json()
+    for (const e of data.events ?? []) byId.set(String(e.id), e)
+  }
+
+  return [...byId.values()]
     .map(mapEvent)
     .filter(Boolean)
     .sort((a, b) => a.date.localeCompare(b.date))
