@@ -13,7 +13,7 @@ import { currentRound, loadSchedule, playedRounds } from './gameweeks'
 import type { Player } from './sheet'
 import { fetchPlayers } from './sheet'
 import type { Standing } from './game'
-import { computeStanding, sortStandings } from './game'
+import { computeStanding, inCurrentGame, sortStandings } from './game'
 import { loadResults } from './results'
 import { LIVES } from '../config'
 
@@ -96,7 +96,7 @@ export function useGameData(): GameData {
       // the current round. These don't depend on player data, so fetch them
       // from ESPN now, in parallel with the still-pending players call.
       const baseNeeded = new Map<number, Round>()
-      for (const r of played) baseNeeded.set(r.round, r)
+      for (const r of played) if (inCurrentGame(r.round)) baseNeeded.set(r.round, r)
       if (current) baseNeeded.set(current.round, current)
       const baseFixturesPromise = Promise.all([...baseNeeded.values()].map(fetchRound))
 
@@ -110,7 +110,7 @@ export function useGameData(): GameData {
       for (const p of playersRes.players) {
         for (const key of Object.keys(p.picks)) {
           const n = Number(key.replace(/\D/g, ''))
-          if (baseNeeded.has(n) || roundFixtures.has(n)) continue
+          if (!inCurrentGame(n) || baseNeeded.has(n) || roundFixtures.has(n)) continue
           const r = schedule.rounds.find((x) => x.round === n)
           if (r) extra.set(n, r)
         }

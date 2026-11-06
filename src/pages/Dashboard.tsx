@@ -6,6 +6,7 @@ import type { Fixture } from '../lib/espn'
 import { fetchFixtures, fixtureForTeam, outcomeFor } from '../lib/espn'
 import { Crest, Hearts, Countdown, StatCard, Pill } from '../components/ui'
 import { FixtureCard } from '../components/FixtureCard'
+import { GAME_START_ROUND, PAST_GAMES } from '../config'
 
 export function Dashboard({ data }: { data: GameData }) {
   const { current, currentFixtures, standings, lives, teams, now, schedule, roundFixtures, voided } =
@@ -36,6 +37,21 @@ export function Dashboard({ data }: { data: GameData }) {
 
   return (
     <div className="space-y-5">
+      {/* Honours — last game's winner, and a heads-up while the new game is fresh */}
+      {PAST_GAMES.length > 0 && (
+        <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-sm text-amber-100">
+          🏆 <span className="font-semibold">{PAST_GAMES[0].winner}</span> won the last game (
+          {PAST_GAMES[0].rounds}).
+          {current && current.round <= GAME_START_ROUND && (
+            <>
+              {' '}
+              A new game starts in <span className="font-semibold">GW{GAME_START_ROUND}</span> —
+              everyone's back in with 3 lives and every team available.
+            </>
+          )}
+        </div>
+      )}
+
       {/* Stat row — full width across the top */}
       <div className="flex gap-3">
         <StatCard label="Round" value={current ? `GW${current.round}` : '—'} accent />

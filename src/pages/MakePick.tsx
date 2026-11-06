@@ -6,6 +6,7 @@ import type { Team } from '../lib/teams'
 import type { Fixture } from '../lib/espn'
 import { fetchFixtures, fixtureForTeam } from '../lib/espn'
 import { Crest, Countdown } from '../components/ui'
+import { inCurrentGame } from '../lib/game'
 
 function shortDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -73,7 +74,9 @@ export function MakePick({
     const usedElsewhere = new Set<string>()
     for (const [k, v] of Object.entries(player.picks)) {
       if (k === gwKey(pickRound)) continue
-      if (voidedSet.has(Number(k.replace(/\D/g, '')))) continue // voided week — team freed
+      const n = Number(k.replace(/\D/g, ''))
+      if (voidedSet.has(n)) continue // voided week — team freed
+      if (!inCurrentGame(n)) continue // previous game — teams reset
       const t = findTeam(teams, v)
       if (t) usedElsewhere.add(t.id)
     }

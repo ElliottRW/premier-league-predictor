@@ -11,6 +11,12 @@ import type { Team } from './teams'
 import { findTeam } from './teams'
 import type { Fixture, Outcome } from './espn'
 import { fixtureForTeam, outcomeFor } from './espn'
+import { GAME_START_ROUND } from '../config'
+
+/** Is this gameweek part of the current game (not a previous, finished one)? */
+export function inCurrentGame(round: number): boolean {
+  return round >= GAME_START_ROUND
+}
 
 // 'void'     = the picked team had no game that round and the pick wasn't
 //              changed in time — counts as a life lost.
@@ -45,6 +51,7 @@ export function usedTeams(player: Player, teams: Team[], voided: Set<number> = n
   const seen = new Set<string>()
   for (const [key, raw] of Object.entries(player.picks)) {
     if (voided.has(roundOf(key))) continue
+    if (!inCurrentGame(roundOf(key))) continue // previous game's picks
     const t = findTeam(teams, raw)
     if (t && !seen.has(t.id)) {
       seen.add(t.id)
@@ -90,7 +97,7 @@ export function computeStanding(
   let out = false
   let eliminatedRound: number | undefined
 
-  for (const round of [...playedRoundNums].sort((a, b) => a - b)) {
+  for (const round of playedRoundNums.filter(inCurrentGame).sort((a, b) => a - b)) {
     const pickRaw = player.picks[gwKey(round)] ?? null
     const team = findTeam(teams, pickRaw) ?? undefined
     const fixtures = roundFixtures.get(round) ?? []

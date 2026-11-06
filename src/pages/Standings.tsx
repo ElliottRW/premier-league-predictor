@@ -3,6 +3,7 @@ import type { Grade, Standing } from '../lib/game'
 import type { PickResult } from '../lib/game'
 import { gwKey } from '../lib/sheet'
 import { Crest, Hearts } from '../components/ui'
+import { GAME_START_ROUND } from '../config'
 
 const gradeStyle: Record<Grade, string> = {
   win: 'bg-emerald-500/20 border-emerald-500/40',
@@ -20,7 +21,10 @@ export function Standings({ data }: { data: GameData }) {
   if (!schedule) return null
 
   const lastRound = current?.round ?? schedule.rounds.length
-  const rounds = Array.from({ length: lastRound }, (_, i) => i + 1)
+  const rounds = Array.from(
+    { length: Math.max(0, lastRound - GAME_START_ROUND + 1) },
+    (_, i) => i + GAME_START_ROUND,
+  )
   const lockedCurrent = current
     ? now.getTime() >= new Date(current.deadline).getTime()
     : true

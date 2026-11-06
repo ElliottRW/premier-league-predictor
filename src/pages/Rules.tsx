@@ -52,7 +52,7 @@ export function Rules() {
           you're eliminated.
         </Rule>
         <Rule icon="🔁" title="Never the same team twice">
-          Once you've picked a team it's used up for the rest of the season — win, lose or draw. Your
+          Once you've picked a team it's used up for the rest of the game — win, lose or draw. Your
           options shrink every week.
         </Rule>
         <Rule icon="🏆" title="Last one standing wins">
